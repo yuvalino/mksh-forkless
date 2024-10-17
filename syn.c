@@ -26,6 +26,10 @@
 #define MKSH_SHF_VFPRINTF_NO_GCC_FORMAT_ATTRIBUTE
 #include "sh.h"
 
+#if MKSH_FORKLESS
+#include "tvm.h"
+#endif
+
 __RCSID("$MirOS: src/bin/mksh/syn.c,v 1.153 2024/07/26 18:39:09 tg Exp $");
 
 struct nesting_state {
@@ -76,11 +80,19 @@ static void vwarnf0(unsigned int, int, const char *, va_list)
 #define vwarnf0 vwarnf
 #endif
 
+#if MKSH_FORKLESS
+static COW_IMPL(struct op *, outtree);		/* yyparse output */
+static COW_IMPL(struct nesting_state, nesting);	/* \n changed to ; */
+
+static COW_IMPL(Wahr, reject);			/* token(cf) gets symbol again */
+static COW_IMPL(int, symbol);			/* yylex value */
+#else
 static struct op *outtree;		/* yyparse output */
 static struct nesting_state nesting;	/* \n changed to ; */
 
 static Wahr reject;			/* token(cf) gets symbol again */
 static int symbol;			/* yylex value */
+#endif
 
 #define REJECT		(reject = Ja)
 #define ACCEPT		(reject = Nee)

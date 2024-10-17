@@ -24,6 +24,10 @@
 
 #include "sh.h"
 
+#if MKSH_FORKLESS
+#include "tvm.h"
+#endif
+
 __RCSID("$MirOS: src/bin/mksh/lex.c,v 1.267 2023/04/16 00:40:13 tg Exp $");
 
 /*
@@ -107,8 +111,13 @@ static void gethere(void);
 static Lex_state *push_state_i(State_info *, Lex_state *);
 static Lex_state *pop_state_i(State_info *, Lex_state *);
 
+#if MKSH_FORKLESS
+static COW_IMPL(int, backslash_skip);
+static COW_IMPL(int, ignore_backslash_newline);
+#else
 static int backslash_skip;
 static int ignore_backslash_newline;
+#endif
 
 /* optimised getsc_bn() */
 #define o_getsc()	(*source->str != '\0' && *source->str != '\\' && \

@@ -30,6 +30,10 @@
  * of said person’s immediate fault when using the work as intended.
  */
 
+#if MKSH_FORKLESS
+#include "tvm.h"
+#endif
+
 #define MKSH_SH_H_ID "$MirOS: src/bin/mksh/sh.h,v 1.1032 2024/07/26 18:39:07 tg Exp $"
 
 #ifdef MKSH_USE_AUTOCONF_H
@@ -983,6 +987,24 @@ enum sh_flag {
 struct sretrace_info;
 struct yyrecursive_state;
 
+#if MKSH_FORKLESS
+COW_DECL(struct sretrace_info *retrace_info);
+COW_DECL(unsigned int subshell_nesting_type);
+
+COW_DECL(struct env {
+	ALLOC_ITEM alloc_INT;	/* internal, do not touch */
+	Area area;		/* temporary allocation area */
+	struct env *oenv;	/* link to previous environment */
+	struct block *loc;	/* local variables and functions */
+	ksh_fdsave *savedfd;	/* original fds for redirected fds */
+	struct temp *temps;	/* temp files */
+	/* saved parser recursion state */
+	struct yyrecursive_state *yyrecursive_statep;
+	kshjmp_buf jbuf;	/* long jump back to env creator */
+	kby type;		/* environment type - see below */
+	kby flags;		/* EF_* */
+} *e);
+#else
 EXTERN struct sretrace_info *retrace_info;
 EXTERN unsigned int subshell_nesting_type;
 
@@ -999,6 +1021,7 @@ extern struct env {
 	kby type;		/* environment type - see below */
 	kby flags;		/* EF_* */
 } *e;
+#endif
 
 /* struct env.type values */
 #define E_NONE	0	/* dummy environment */
@@ -1484,7 +1507,12 @@ typedef struct trap {
 EXTERN volatile sig_atomic_t trap;	/* traps pending? */
 EXTERN volatile sig_atomic_t intrsig;	/* pending trap interrupts command */
 EXTERN volatile sig_atomic_t fatal_trap; /* received a fatal signal */
+
+#if MKSH_FORKLESS
+COW_DECL(Trap sigtraps[ksh_NSIG + 1]);
+#else
 extern Trap sigtraps[ksh_NSIG + 1];
+#endif
 
 /* got_winch = 1 when we need to re-adjust the window size */
 #ifdef SIGWINCH

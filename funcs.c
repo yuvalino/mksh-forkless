@@ -26,6 +26,10 @@
 
 #include "sh.h"
 
+#if MKSH_FORKLESS
+#include "tvm.h"
+#endif
+
 __RCSID("$MirOS: src/bin/mksh/funcs.c,v 1.415 2024/02/02 02:33:06 tg Exp $");
 
 #if HAVE_KILLPG
@@ -255,7 +259,11 @@ c_pwd(const char **wp)
 	return (0);
 }
 
+#if MKSH_FORKLESS
+static COW_IMPL(const char *, s_ptr);
+#else
 static const char *s_ptr;
+#endif
 static int s_get(void);
 static void s_put(int);
 

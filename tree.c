@@ -23,6 +23,10 @@
 
 #include "sh.h"
 
+#if MKSH_FORKLESS
+#include "tvm.h"
+#endif
+
 __RCSID("$MirOS: src/bin/mksh/tree.c,v 1.114 2024/07/26 18:34:58 tg Exp $");
 
 #define INDENT	8
@@ -34,6 +38,15 @@ static void vfptreef(struct shf *, int, const char *, va_list);
 static struct ioword **iocopy(struct ioword **, Area *);
 static void iofree(struct ioword **, Area *);
 
+#if MKSH_FORKLESS
+/* "foo& ; bar" and "foo |& ; bar" are invalid */
+static COW_IMPL(Wahr, prevent_semicolon);
+
+/* here document diversion */
+static COW_IMPL(unsigned short, ptree_nest);
+static COW_IMPL(Wahr, ptree_hashere);
+static COW_IMPL(struct shf, ptree_heredoc);
+#else
 /* "foo& ; bar" and "foo |& ; bar" are invalid */
 static Wahr prevent_semicolon;
 
@@ -41,6 +54,8 @@ static Wahr prevent_semicolon;
 static unsigned short ptree_nest;
 static Wahr ptree_hashere;
 static struct shf ptree_heredoc;
+#endif
+
 #define ptree_outhere(shf) do {					\
 	if (ptree_hashere) {					\
 		char *ptree_thehere;				\

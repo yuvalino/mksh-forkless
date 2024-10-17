@@ -25,6 +25,10 @@
 #include "sh.h"
 #include "mirhash.h"
 
+#if MKSH_FORKLESS
+#include "tvm.h"
+#endif
+
 __RCSID("$MirOS: src/bin/mksh/var.c,v 1.283 2024/02/02 04:04:22 tg Exp $");
 
 /*-
@@ -37,10 +41,18 @@ __RCSID("$MirOS: src/bin/mksh/var.c,v 1.283 2024/02/02 04:04:22 tg Exp $");
  * if (flag&EXPORT), val.s contains "name=value" for E-Z exporting.
  */
 
+#if MKSH_FORKLESS
+static COW_IMPL(struct table, specials);
+static COW_IMPL_INIT(k32, lcg_state, 5381U);
+static COW_IMPL_INIT(k32, qh_state, 4711U);
+/* may only be set by typeset() just before call to array_index_calc() */
+static COW_IMPL_INIT(enum namerefflag, innermost_refflag, SRF_NOP);
+#else
 static struct table specials;
 static k32 lcg_state = 5381U, qh_state = 4711U;
 /* may only be set by typeset() just before call to array_index_calc() */
 static enum namerefflag innermost_refflag = SRF_NOP;
+#endif
 
 /*
  * Evil hack since casting uint to sint is implementation-defined

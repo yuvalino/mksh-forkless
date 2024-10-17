@@ -24,6 +24,10 @@
 
 #include "sh.h"
 
+#if MKSH_FORKLESS
+#include "tvm.h"
+#endif
+
 __RCSID("$MirOS: src/bin/mksh/jobs.c,v 1.162 2024/04/02 03:33:48 tg Exp $");
 
 #if HAVE_KILLPG
@@ -131,6 +135,15 @@ static const char * const lookup_msgs[] = {
 	"argument must be %job or process id"
 };
 
+#if MKSH_FORKLESS
+static COW_IMPL(Job *, job_list);		/* job list */
+static COW_IMPL(Job *, last_job);
+static COW_IMPL(Job *, async_job);
+static COW_IMPL(pid_t, async_pid);
+
+static COW_IMPL(int, nzombie);		/* # of zombies owned by this process */
+static COW_IMPL(int, njobs);		/* # of jobs started */
+#else
 static Job *job_list;		/* job list */
 static Job *last_job;
 static Job *async_job;
@@ -138,11 +151,25 @@ static pid_t async_pid;
 
 static int nzombie;		/* # of zombies owned by this process */
 static int njobs;		/* # of jobs started */
+#endif
 
 #ifndef CHILD_MAX
 #define CHILD_MAX	25
 #endif
 
+#if MKSH_FORKLESS
+#ifndef MKSH_NOPROSPECTOFWORK
+/* held_sigchld is set if sigchld occurs before a job is completely started */
+static COW_IMPL(sig_atomic_t, held_sigchld);
+#endif
+
+#ifndef MKSH_UNEMPLOYED
+static COW_IMPL(struct shf *, shl_j);
+static COW_IMPL(Wahr		, ttypgrp_ok);	/* set if can use tty pgrps */
+static COW_IMPL_INIT(pid_t	, restore_ttypgrp, -1);
+static int const	tt_sigs[] = { SIGTSTP, SIGTTIN, SIGTTOU };
+#endif
+#else
 #ifndef MKSH_NOPROSPECTOFWORK
 /* held_sigchld is set if sigchld occurs before a job is completely started */
 static volatile sig_atomic_t held_sigchld;
@@ -153,6 +180,7 @@ static struct shf	*shl_j;
 static Wahr		ttypgrp_ok;	/* set if can use tty pgrps */
 static pid_t		restore_ttypgrp = -1;
 static int const	tt_sigs[] = { SIGTSTP, SIGTTIN, SIGTTOU };
+#endif
 #endif
 
 static void		j_set_async(Job *);

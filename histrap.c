@@ -26,9 +26,17 @@
 #include "sh.h"
 #include "mirhash.h"
 
+#if MKSH_FORKLESS
+#include "tvm.h"
+#endif
+
 __RCSID("$MirOS: src/bin/mksh/histrap.c,v 1.190 2023/08/22 22:31:32 tg Exp $");
 
+#if MKSH_FORKLESS
+COW_IMPL_ARRAY(Trap, sigtraps, ksh_NSIG + 1);
+#else
 Trap sigtraps[ksh_NSIG + 1];
+#endif
 
 #if HAVE_PERSISTENT_HISTORY
 static int histload(Source *, unsigned char *, size_t);
@@ -40,8 +48,13 @@ static int hist_execute(char *, Area *);
 static char **hist_get(const char *, Wahr, Wahr);
 static char **hist_get_oldest(void);
 
+#if MKSH_FORKLESS
+static COW_IMPL(Wahr, hstarted);		/* set after hist_init() called */
+static COW_IMPL(Source *, hist_source);
+#else
 static Wahr hstarted;		/* set after hist_init() called */
 static Source *hist_source;
+#endif
 
 #if HAVE_PERSISTENT_HISTORY
 /*XXX imake style */
@@ -61,10 +74,17 @@ static Source *hist_source;
 #define MAP_FILE	0
 #endif
 
+#if MKSH_FORKLESS
+/* current history file: name, fd, size */
+static COW_IMPL(char *, hname);
+static COW_IMPL_INIT(int, histfd, -1);
+static COW_IMPL(off_t, histfsize);
+#else
 /* current history file: name, fd, size */
 static char *hname;
 static int histfd = -1;
 static off_t histfsize;
+#endif
 #endif
 
 /* HISTSIZE default: size of saved history, persistent or standard */

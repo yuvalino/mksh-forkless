@@ -27,6 +27,10 @@
 
 #include "sh.h"
 
+#if MKSH_FORKLESS
+#include "tvm.h"
+#endif
+
 #ifndef MKSH_NO_CMDLINE_EDITING
 
 __RCSID("$MirOS: src/bin/mksh/edit.c,v 1.400 2022/12/01 23:55:29 tg Exp $");
@@ -48,6 +52,17 @@ static const char ctrl_x_e[] = "fc -e \"${VISUAL:-${EDITOR:-vi}}\" --";
 /* tty driver characters we are interested in */
 #define EDCHAR_DISABLED	0xFFFFU
 #define EDCHAR_INITIAL	0xFFFEU
+
+#if MKSH_FORKLESS
+static COW_IMPL(struct {
+	unsigned short erase;
+	unsigned short kill;
+	unsigned short werase;
+	unsigned short intr;
+	unsigned short quit;
+	unsigned short eof;
+}, edchars);
+#else
 static struct {
 	unsigned short erase;
 	unsigned short kill;
@@ -56,6 +71,7 @@ static struct {
 	unsigned short quit;
 	unsigned short eof;
 } edchars;
+#endif
 
 #define isched(x,e) ((unsigned short)(unsigned char)(x) == (e))
 #define isedchar(x) (!((x) & ~0xFFU))
@@ -70,6 +86,15 @@ static struct {
 #define XCF_IS_NOSPACE	BIT(4)	/* return flag: do not append a space */
 #define XCF_IS_HOMEDIR	BIT(5)	/* return flag: tilde needs slash */
 
+#if MKSH_FORKLESS
+static COW_IMPL(char, editmode);
+static COW_IMPL(int,  xx_cols);			/* for Emacs mode */
+static COW_IMPL(int,  modified);			/* buffer has been "modified" */
+static COW_IMPL(char *, holdbufp);			/* place to hold last edit buffer */
+
+/* 0=dumb 1=tmux (for now) */
+static COW_IMPL(kby, x_term_mode);
+#else
 static char editmode;
 static int xx_cols;			/* for Emacs mode */
 static int modified;			/* buffer has been "modified" */
@@ -77,6 +102,7 @@ static char *holdbufp;			/* place to hold last edit buffer */
 
 /* 0=dumb 1=tmux (for now) */
 static kby x_term_mode;
+#endif
 
 static void x_adjust(void);
 static int x_getc(void);

@@ -28,6 +28,13 @@
 #define EXTERN
 #include "sh.h"
 
+#if MKSH_FORKLESS
+#include "tvm.h"
+
+COW_IMPL(struct sretrace_info *, retrace_info);
+COW_IMPL(unsigned int, subshell_nesting_type);
+#endif
+
 __RCSID("$MirOS: src/bin/mksh/main.c,v 1.438 2023/10/06 21:56:49 tg Exp $");
 __IDSTRING(mbsdcc_h_rcsid, SYSKERN_MBSDCC_H);
 __IDSTRING(mbsdint_h_rcsid, SYSKERN_MBSDINT_H);
@@ -105,6 +112,17 @@ static const char *restr_com[] = {
 
 extern const char Tpipest[];
 
+#if MKSH_FORKLESS
+/* top-level parsing and execution environment */
+static COW_IMPL(struct env, env);
+COW_IMPL_INIT(struct env *, e, &env);
+
+/* buffer */
+#if !HAVE_GET_CURRENT_DIR_NAME
+static COW_IMPL_INIT(size_t, getwd_bufsz, 448U);
+#endif
+static COW_IMPL_INIT(char *, getwd_bufp, NULL);
+#else
 /* top-level parsing and execution environment */
 static struct env env;
 struct env *e = &env;
@@ -114,6 +132,7 @@ struct env *e = &env;
 static size_t getwd_bufsz = 448U;
 #endif
 static char *getwd_bufp = NULL;
+#endif
 
 /* many compile-time assertions */
 mbCTA_BEG(main_c);
