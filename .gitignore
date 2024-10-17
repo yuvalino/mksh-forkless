@@ -1,0 +1,8 @@
+*.o
+*.gen
+*.cat1
+FAQ.htm
+Rebuild.sh
+test.sh
+mksh
+mksh.a
