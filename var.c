@@ -1329,8 +1329,13 @@ unspecial(const char *name)
 		ktdelete(tp);
 }
 
+#if MKSH_FORKLESS
+static COW_IMPL(time_t, seconds);		/* time SECONDS last set */
+static COW_IMPL(mksh_uari_t, user_lineno);	/* what user set $LINENO to */
+#else
 static time_t seconds;		/* time SECONDS last set */
 static mksh_uari_t user_lineno;	/* what user set $LINENO to */
+#endif
 
 /* minimum values from the OS we consider sane, lowered for R53 */
 #define MIN_COLS	4

@@ -462,7 +462,13 @@ hist_get_oldest(void)
 
 #if !defined(MKSH_NO_CMDLINE_EDITING) && !MKSH_S_NOVI
 /* current position in history[] */
+
+#if MKSH_FORKLESS
+static COW_IMPL(char **, current);
+#else
 static char **current;
+#endif
+
 
 /*
  * Return the current position.

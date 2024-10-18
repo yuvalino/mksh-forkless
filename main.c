@@ -33,6 +33,87 @@
 
 COW_IMPL(struct sretrace_info *, retrace_info);
 COW_IMPL(unsigned int, subshell_nesting_type);
+
+COW_IMPL(pid_t, procpid);
+COW_IMPL(int, exstat);
+COW_IMPL(int, subst_exstat);
+COW_IMPL(struct tbl *, vp_pipest);
+COW_IMPL(short, trap_exstat);
+COW_IMPL(kby, trap_nested);
+COW_IMPL_ARRAY(kby, shell_flags, FNFLAGS);
+COW_IMPL_ARRAY(kby, baseline_flags, FNFLAGS
+#if !defined(MKSH_SMALL) || defined(DEBUG)
+    + 1
+#endif
+    );
+COW_IMPL(Wahr, as_builtin);
+COW_IMPL(const char *, kshname);
+COW_IMPL(struct rndsetupstate_t, rndsetupstate);
+
+COW_IMPL(Wahr, initio_done);
+COW_IMPL(Wahr, shl_stdout_ok);
+
+COW_IMPL(sig_atomic_t, trap);
+COW_IMPL(sig_atomic_t, intrsig);
+COW_IMPL(sig_atomic_t, fatal_trap);
+
+#ifdef SIGWINCH
+COW_IMPL_INIT(sig_atomic_t, got_winch, 1);
+#endif
+
+COW_IMPL(unsigned int, ksh_tmout);
+COW_IMPL(enum tmout_enum, ksh_tmout_state);
+COW_IMPL(Wahr, really_exit);
+
+COW_IMPL_ARRAY(kui, ksh_ctypes, 256);
+COW_IMPL(char, ifs0);
+
+COW_IMPL(Getopt, builtin_opt)
+COW_IMPL(Getopt, user_opt);
+
+COW_IMPL(struct coproc, coproc);
+
+COW_IMPL(const char *, builtin_argv0);
+COW_IMPL(Wahr, builtin_spec);
+COW_IMPL(char	*, current_wd);
+COW_IMPL_INIT(mksh_ari_t, x_cols, 80);
+COW_IMPL_INIT(mksh_ari_t, x_lins, 24);
+
+COW_IMPL(struct tbl *, vtemp);
+COW_IMPL(Wahr, last_lookup_was_array);
+
+COW_IMPL(struct table, taliases);
+COW_IMPL(struct table, builtins);
+COW_IMPL(struct table, aliases);
+COW_IMPL(struct table, keywords);
+#ifndef MKSH_NOPWNAM
+COW_IMPL(struct table, homedirs);
+#endif
+
+COW_IMPL(char *, path);
+COW_IMPL(const char *, def_path);
+COW_IMPL(char *, tmpdir);
+COW_IMPL(const char *, prompt);
+COW_IMPL(kby, cur_prompt);
+COW_IMPL(int, current_lineno);
+
+COW_IMPL(Source *, source);
+COW_IMPL(YYSTYPE, yylval);
+COW_IMPL_ARRAY(struct ioword *, heres, HERES);
+COW_IMPL(struct ioword **, herep);
+COW_IMPL_ARRAY(char, ident, IDENT + 1);
+
+COW_IMPL(char **, history);
+COW_IMPL(char **, histptr);
+COW_IMPL(mksh_ari_t, histsize);
+
+COW_IMPL(struct timeval, j_usrtime);
+COW_IMPL(struct timeval, j_systime);
+
+COW_IMPL_INIT(int, tty_fd, -1);
+COW_IMPL(Wahr, tty_devtty);
+COW_IMPL(mksh_ttyst, tty_state);
+COW_IMPL(Wahr, tty_hasstate);
 #endif
 
 __RCSID("$MirOS: src/bin/mksh/main.c,v 1.438 2023/10/06 21:56:49 tg Exp $");
@@ -1388,7 +1469,12 @@ int shl_dbg_fd;
 #else
 #define NSHF_IOB 3
 #endif
+
+#if MKSH_FORKLESS
+COW_IMPL_ARRAY(struct shf, shf_iob, NSHF_IOB);
+#else
 struct shf shf_iob[NSHF_IOB];
+#endif
 
 /* pre-initio() */
 void
@@ -2038,10 +2124,17 @@ init_environ(void)
 {
 	const char **wp;
 
+#if MKSH_FORKLESS
+	if (tvm_environ == NULL)
+		return;
+
+	wp = (const char **)tvm_environ;
+#else
 	if (environ == NULL)
 		return;
 
 	wp = (const char **)environ;
+#endif
 	while (*wp != NULL) {
 		rndpush(*wp, strlen(*wp));
 		typeset(*wp, IMPORT | EXPORT, 0, 0, 0);
@@ -2205,8 +2298,13 @@ reclim_trace(void)
 #include <syslog.h>
 static void reclim_atexit(void);
 
+#if MKSH_FORKLESS
+static COW_IMPL_INIT(sig_atomic_t, reclim_v, 0);
+static COW_IMPL_INIT(kby, reclim_warned, 0);
+#else
 static volatile sig_atomic_t reclim_v = 0;
 static kby reclim_warned = 0;
+#endif
 
 static void
 reclim_trace(void)

@@ -510,7 +510,11 @@ execve(const char *name, char * const *argv, char * const *envp)
 	_exit(WEXITSTATUS(status));
 }
 
+#if MKSH_FORKLESS
+static COW_IMPL_INIT(struct temp *, templist, NULL);
+#else
 static struct temp *templist = NULL;
+#endif
 
 static void
 add_temp(const char *name)

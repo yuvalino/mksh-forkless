@@ -1739,7 +1739,11 @@ v(unsigned int c)
 	}				\
 } while (/* CONSTCOND */ 0)
 
+#if MKSH_FORKLESS
+static COW_IMPL_ARRAY_MD(char, vert, [40][40]);
+#else
 static char vert[40][40];
+#endif
 
 static struct ciname {
 	const char *name;

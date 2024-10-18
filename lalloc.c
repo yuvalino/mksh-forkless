@@ -199,7 +199,6 @@ afree(void *ptr, Area *ap)
 {
 	if (ptr != NULL) {
 		struct lalloc_common *lp, *pp;
-
 		pp = findptr(&lp, ptr, ap);
 		/* unhook */
 		pp->next = lp->next;

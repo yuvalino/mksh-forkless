@@ -1060,6 +1060,32 @@ extern struct env {
 #define LLEAVE	10	/* untrappable exit/error */
 
 /* sort of shell global state */
+#if MKSH_FORKLESS
+COW_DECL(pid_t procpid);		/* PID of executing process */
+COW_DECL(int exstat);		/* exit status */
+COW_DECL(int subst_exstat);	/* exit status of last $(..)/`..` */
+COW_DECL(struct tbl *vp_pipest);	/* global PIPESTATUS array */
+COW_DECL(short trap_exstat);	/* exit status before running a trap */
+COW_DECL(kby trap_nested);		/* running nested traps */
+COW_DECL(kby shell_flags[FNFLAGS]);
+COW_DECL(kby baseline_flags[FNFLAGS
+#if !defined(MKSH_SMALL) || defined(DEBUG)
+    + 1
+#endif
+    ]);
+COW_DECL(Wahr as_builtin);		/* direct builtin call */
+COW_DECL(const char *kshname);	/* $0 */
+struct rndsetupstate_t {
+	uid_t kshuid_v;		/* real UID of shell at startup */
+	uid_t ksheuid_v;	/* effective UID of shell */
+	gid_t kshgid_v;		/* real GID of shell at startup */
+	gid_t kshegid_v;	/* effective GID of shell */
+	pid_t kshpgrp_v;	/* process group of shell */
+	pid_t kshppid_v;	/* PID of parent of shell */
+	pid_t kshpid_v;		/* $$, shell PID */
+};
+COW_DECL(struct rndsetupstate_t rndsetupstate);
+#else
 EXTERN pid_t procpid;		/* PID of executing process */
 EXTERN int exstat;		/* exit status */
 EXTERN int subst_exstat;	/* exit status of last $(..)/`..` */
@@ -1083,6 +1109,7 @@ EXTERN struct {
 	pid_t kshppid_v;	/* PID of parent of shell */
 	pid_t kshpid_v;		/* $$, shell PID */
 } rndsetupstate;
+#endif
 
 #define kshpid		rndsetupstate.kshpid_v
 #define kshpgrp		rndsetupstate.kshpgrp_v
@@ -1462,8 +1489,14 @@ struct temp {
 #ifdef DF
 #define shl_dbg		(&shf_iob[3])	/* for DF() */
 #endif
+
+#if MKSH_FORKLESS
+COW_DECL(Wahr initio_done);
+COW_DECL(Wahr shl_stdout_ok);
+#else
 EXTERN Wahr initio_done;		/* shl_*out:Ja/1, shl_dbg:2 */
 EXTERN Wahr shl_stdout_ok;
+#endif
 
 /*
  * trap handlers
@@ -1504,19 +1537,27 @@ typedef struct trap {
 #define ksh_SIGEXIT 0		/* for trap EXIT */
 #define ksh_SIGERR  ksh_NSIG	/* for trap ERR */
 
+#if MKSH_FORKLESS
+COW_DECL(sig_atomic_t trap);
+COW_DECL(sig_atomic_t intrsig);
+COW_DECL(sig_atomic_t fatal_trap);
+
+COW_DECL(Trap sigtraps[ksh_NSIG + 1]);
+#else
 EXTERN volatile sig_atomic_t trap;	/* traps pending? */
 EXTERN volatile sig_atomic_t intrsig;	/* pending trap interrupts command */
 EXTERN volatile sig_atomic_t fatal_trap; /* received a fatal signal */
 
-#if MKSH_FORKLESS
-COW_DECL(Trap sigtraps[ksh_NSIG + 1]);
-#else
 extern Trap sigtraps[ksh_NSIG + 1];
 #endif
 
 /* got_winch = 1 when we need to re-adjust the window size */
 #ifdef SIGWINCH
+#if MKSH_FORKLESS
+COW_DECL(sig_atomic_t got_winch);
+#else
 EXTERN volatile sig_atomic_t got_winch E_INIT(1);
+#endif
 #else
 #define got_winch	Ja
 #endif
@@ -1530,11 +1571,20 @@ enum tmout_enum {
 	TMOUT_READING,		/* waiting for input */
 	TMOUT_LEAVING		/* have timed out */
 };
+
+#if MKSH_FORKLESS
+COW_DECL(unsigned int ksh_tmout);
+COW_DECL(enum tmout_enum ksh_tmout_state);
+
+/* For "You have stopped jobs" message */
+COW_DECL(Wahr really_exit);
+#else
 EXTERN unsigned int ksh_tmout;
 EXTERN enum tmout_enum ksh_tmout_state;
 
 /* For "You have stopped jobs" message */
 EXTERN Wahr really_exit;
+#endif
 
 /*
  * fast character classes
@@ -1579,10 +1629,17 @@ EXTERN Wahr really_exit;
 
 /* compile-time initialised, ASCII only */
 extern const kui tpl_ctypes[128];
+#if MKSH_FORKLESS
+/* run-time, contains C_IFS as well, full 2⁸ octet range */
+COW_DECL(kui ksh_ctypes[256]);
+/* first octet of $IFS, for concatenating "$*" */
+COW_DECL(char ifs0);
+#else
 /* run-time, contains C_IFS as well, full 2⁸ octet range */
 EXTERN kui ksh_ctypes[256];
 /* first octet of $IFS, for concatenating "$*" */
 EXTERN char ifs0;
+#endif
 
 /* external types */
 
@@ -1770,8 +1827,13 @@ typedef struct {
 	char buf[2];		/* for bad option OPTARG value */
 } Getopt;
 
+#if MKSH_FORKLESS
+COW_DECL(Getopt builtin_opt);	/* for shell builtin commands */
+COW_DECL(Getopt user_opt);		/* parsing state for getopts builtin command */
+#else
 EXTERN Getopt builtin_opt;	/* for shell builtin commands */
 EXTERN Getopt user_opt;		/* parsing state for getopts builtin command */
+#endif
 
 /* This for co-processes */
 
@@ -1786,13 +1848,26 @@ struct coproc {
 	int njobs;	/* number of live jobs using output pipe */
 	Coproc_id id;	/* id of current output pipe */
 };
+#if MKSH_FORKLESS
+COW_DECL(struct coproc coproc);
+#else
 EXTERN struct coproc coproc;
+#endif
 
 #ifndef MKSH_NOPROSPECTOFWORK
 /* used in jobs.c and by coprocess stuff in exec.c and select() calls */
 EXTERN sigset_t		sm_default, sm_sigchld;
 #endif
 
+#if MKSH_FORKLESS
+/* name of called builtin function (used by error functions) */
+COW_DECL(const char *builtin_argv0);
+/* is called builtin a POSIX special builtin? (error functions only) */
+COW_DECL(Wahr builtin_spec);
+
+/* current working directory */
+COW_DECL(char	*current_wd);
+#else
 /* name of called builtin function (used by error functions) */
 EXTERN const char *builtin_argv0;
 /* is called builtin a POSIX special builtin? (error functions only) */
@@ -1800,6 +1875,7 @@ EXTERN Wahr builtin_spec;
 
 /* current working directory */
 EXTERN char	*current_wd;
+#endif
 
 /* input line size */
 #ifdef MKSH_SMALL
@@ -1807,9 +1883,15 @@ EXTERN char	*current_wd;
 #else
 #define LINE		(16384 - ALLOC_OVERHEAD)
 #endif
+
 /* columns and lines of the tty */
+#if MKSH_FORKLESS
+COW_DECL(mksh_ari_t x_cols);
+COW_DECL(mksh_ari_t x_lins);
+#else
 EXTERN mksh_ari_t x_cols E_INIT(80);
 EXTERN mksh_ari_t x_lins E_INIT(24);
+#endif
 
 /* Determine the location of the system (common) profile */
 
@@ -1894,7 +1976,7 @@ struct shf {
 	int errnosv;		/* saved value of errno after error */
 };
 
-extern struct shf shf_iob[];
+COW_DECL(struct shf shf_iob[]);
 
 struct table {
 	Area *areap;		/* area to allocate entries */
@@ -1943,9 +2025,15 @@ union tbl_static {
 	char storage[mbccFAMSZ(struct tbl, name, 4)];
 };
 
+#if MKSH_FORKLESS
+COW_DECL(struct tbl *vtemp);
+/* set by isglobal(), global() and local() */
+COW_DECL(Wahr last_lookup_was_array);
+#else
 EXTERN struct tbl *vtemp;
 /* set by isglobal(), global() and local() */
 EXTERN Wahr last_lookup_was_array;
+#endif
 
 /* common flag bits */
 #define ALLOC		BIT(0)	/* val.s has been allocated */
@@ -2063,12 +2151,22 @@ struct tstate {
 	ssize_t left;
 };
 
+#if MKSH_FORKLESS
+COW_DECL(struct table taliases);	/* tracked aliases */
+COW_DECL(struct table builtins);	/* built-in commands */
+COW_DECL(struct table aliases);	/* aliases */
+COW_DECL(struct table keywords);	/* keywords */
+#ifndef MKSH_NOPWNAM
+COW_DECL(struct table homedirs);	/* homedir() cache */
+#endif
+#else
 EXTERN struct table taliases;	/* tracked aliases */
 EXTERN struct table builtins;	/* built-in commands */
 EXTERN struct table aliases;	/* aliases */
 EXTERN struct table keywords;	/* keywords */
 #ifndef MKSH_NOPWNAM
 EXTERN struct table homedirs;	/* homedir() cache */
+#endif
 #endif
 
 struct builtin {
@@ -2082,12 +2180,21 @@ extern const struct builtin mkshbuiltins[];
 #define PS1	0	/* command */
 #define PS2	1	/* command continuation */
 
+#if MKSH_FORKLESS
+COW_DECL(char *path);		/* copy of either PATH or def_path */
+COW_DECL(const char *def_path);	/* path to use if PATH not set */
+COW_DECL(char *tmpdir);		/* TMPDIR value */
+COW_DECL(const char *prompt);
+COW_DECL(kby cur_prompt);		/* PS1 or PS2 */
+COW_DECL(int current_lineno);	/* LINENO value */
+#else
 EXTERN char *path;		/* copy of either PATH or def_path */
 EXTERN const char *def_path;	/* path to use if PATH not set */
 EXTERN char *tmpdir;		/* TMPDIR value */
 EXTERN const char *prompt;
 EXTERN kby cur_prompt;		/* PS1 or PS2 */
 EXTERN int current_lineno;	/* LINENO value */
+#endif
 
 /*
  * Description of a command or an operation on commands.
@@ -2514,6 +2621,17 @@ typedef union {
 
 #define IDENT	64
 
+#if MKSH_FORKLESS
+COW_DECL(Source *source);		/* yyparse/yylex source */
+COW_DECL(YYSTYPE yylval);		/* result from yylex */
+COW_DECL(struct ioword *heres[HERES]);
+COW_DECL(struct ioword **herep);
+COW_DECL(char ident[IDENT + 1]);
+
+COW_DECL(char **history);		/* saved commands */
+COW_DECL(char **histptr);		/* last history item */
+COW_DECL(mksh_ari_t histsize);	/* history size */
+#else
 EXTERN Source *source;		/* yyparse/yylex source */
 EXTERN YYSTYPE yylval;		/* result from yylex */
 EXTERN struct ioword *heres[HERES], **herep;
@@ -2522,6 +2640,7 @@ EXTERN char ident[IDENT + 1];
 EXTERN char **history;		/* saved commands */
 EXTERN char **histptr;		/* last history item */
 EXTERN mksh_ari_t histsize;	/* history size */
+#endif
 
 /* flags to histsave */
 #define HIST_FLUSH	0
@@ -2531,7 +2650,12 @@ EXTERN mksh_ari_t histsize;	/* history size */
 #define HIST_NOTE	4
 
 /* user and system time of last j_waitjed job */
+#if MKSH_FORKLESS
+COW_DECL(struct timeval j_usrtime);
+COW_DECL(struct timeval j_systime);
+#else
 EXTERN struct timeval j_usrtime, j_systime;
+#endif
 
 #define notok2mul(max,val,c)	(((val) != 0) && ((c) != 0) && \
 				    (((max) / (c)) < (val)))
@@ -3109,10 +3233,17 @@ int test_eval(Test_env *, Test_op, const char *, const char *, Wahr);
 int test_parse(Test_env *);
 
 /* tty_fd is not opened O_BINARY, it's thus never read/written */
+#if MKSH_FORKLESS
+COW_DECL(int tty_fd);	/* dup'd tty file descriptor */
+COW_DECL(Wahr tty_devtty);		/* if tty_fd is from /dev/tty */
+COW_DECL(mksh_ttyst tty_state);	/* saved tty state */
+COW_DECL(Wahr tty_hasstate);	/* if tty_state is valid */
+#else
 EXTERN int tty_fd E_INIT(-1);	/* dup'd tty file descriptor */
 EXTERN Wahr tty_devtty;		/* if tty_fd is from /dev/tty */
 EXTERN mksh_ttyst tty_state;	/* saved tty state */
 EXTERN Wahr tty_hasstate;	/* if tty_state is valid */
+#endif
 
 extern int tty_init_fd(void);	/* initialise tty_fd, tty_devtty */
 

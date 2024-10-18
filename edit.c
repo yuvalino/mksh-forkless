@@ -988,7 +988,12 @@ x_escape(const char *s, size_t len, int (*putbuf_func)(const char *, size_t))
  * directly.  Normally though x_adjust() is called from x_putc().
  */
 
+#if MKSH_FORKLESS
+static COW_IMPL(Area, aedit);
+#else
 static	Area	aedit;
+#endif
+
 #define	AEDIT	&aedit		/* area for kill ring and macro defns */
 
 /* values returned by keyboard functions */
@@ -1024,6 +1029,60 @@ typedef enum {
 	CT_COMPLIST	/* complete and then list (if non-exact) */
 } Comp_type;
 
+#if MKSH_FORKLESS
+/*
+ * The following are used for my horizontal scrolling stuff
+ */
+static COW_IMPL(char *, xbuf);		/* beg input buffer */
+static COW_IMPL(char *, xend);		/* end input buffer */
+static COW_IMPL(char *, xcp);		/* current position */
+static COW_IMPL(char *, xep);		/* current end */
+static COW_IMPL(char *, xbp);		/* start of visible portion of input buffer */
+static COW_IMPL(char *, xlp);		/* last char visible on screen */
+static COW_IMPL(char *, xdp);		/* xbuf + x_displen except multibyte-aware */
+static COW_IMPL(Wahr, x_adj_ok);
+/*
+ * we use x_adj_done so that functions can tell
+ * whether x_adjust() has been called while they are active.
+ */
+static COW_IMPL(kby, x_adj_done);		/* is incremented by x_adjust() */
+
+static COW_IMPL(int, x_displen);
+static COW_IMPL(int, x_arg);		/* general purpose arg */
+static COW_IMPL(Wahr, x_arg_defaulted);	/* x_arg not explicitly set; defaulted to 1 */
+
+/* indicates both xlp and xdp are valid (x_goto needs the latter) */
+static COW_IMPL(Wahr, xlp_valid);		/* lastvis pointer was recalculated */
+
+static COW_IMPL(char **, x_histp);		/* history position */
+static COW_IMPL(int, x_nextcmd);		/* for newline-and-next */
+static COW_IMPL(char **, x_histncp);	/* saved x_histp for " */
+static COW_IMPL(char **, x_histmcp);	/* saved x_histp for " */
+static COW_IMPL(char *, xmp);		/* mark pointer */
+static COW_IMPL(unsigned char, x_last_command);
+static COW_IMPL(kby, x_curprefix);
+static COW_IMPL(kby *, x_btab);		/* bitmap of keys bound by the user */
+static COW_IMPL(kby *, x_ktab);		/* key definitions */
+#ifndef MKSH_SMALL
+static COW_IMPL(char **, x_mtab);		/* macro definitions */
+static COW_IMPL(char *, macroptr);		/* bind key macro active? */
+#endif
+#define KILLSIZE	20
+static COW_IMPL_ARRAY(char *, killstack, KILLSIZE);
+static COW_IMPL(int, killsp);
+static COW_IMPL(int, killtp);
+#if !MKSH_S_NOVI
+static COW_IMPL(int, winwidth);		/* width of window */
+static COW_IMPL_ARRAY(char *, wbuf, 2);		/* window buffers */
+static COW_IMPL(int, wbuf_len);		/* length of window buffers (x_cols - 3) */
+static COW_IMPL(int, win);			/* window buffer in use */
+static COW_IMPL(char, morec);		/* more character at right of window */
+static COW_IMPL(int, holdlen);		/* length of holdbuf */
+#endif
+static COW_IMPL(int, pwidth);		/* width of prompt */
+static COW_IMPL(int, prompt_trunc);	/* how much of prompt to truncate or -1 */
+static COW_IMPL(int, x_col);		/* current column on line */
+#else
 /*
  * The following are used for my horizontal scrolling stuff
  */
@@ -1075,6 +1134,7 @@ static int holdlen;		/* length of holdbuf */
 static int pwidth;		/* width of prompt */
 static int prompt_trunc;	/* how much of prompt to truncate or -1 */
 static int x_col;		/* current column on line */
+#endif
 
 /* normal, prefix1, prefix2, IBM PC, ^V (literal) */
 #define X_NTABS			4U

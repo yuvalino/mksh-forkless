@@ -1814,8 +1814,13 @@ j_lookup(const char *cp, int *ecodep)
 	return (NULL);
 }
 
+#if MKSH_FORKLESS
+static COW_IMPL(Job *, free_jobs);
+static COW_IMPL(Proc *, free_procs);
+#else
 static Job	*free_jobs;
 static Proc	*free_procs;
+#endif
 
 /*
  * allocate a new job and fill in the job number.
