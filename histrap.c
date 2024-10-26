@@ -33,7 +33,7 @@
 __RCSID("$MirOS: src/bin/mksh/histrap.c,v 1.190 2023/08/22 22:31:32 tg Exp $");
 
 #if MKSH_FORKLESS
-COW_IMPL_ARRAY(Trap, sigtraps, ksh_NSIG + 1);
+COW_IMPL(Trap[ksh_NSIG + 1], sigtraps);
 #else
 Trap sigtraps[ksh_NSIG + 1];
 #endif

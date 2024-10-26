@@ -1740,7 +1740,7 @@ v(unsigned int c)
 } while (/* CONSTCOND */ 0)
 
 #if MKSH_FORKLESS
-static COW_IMPL_ARRAY_MD(char, vert, [40][40]);
+static COW_IMPL(char[40][40], vert);
 #else
 static char vert[40][40];
 #endif

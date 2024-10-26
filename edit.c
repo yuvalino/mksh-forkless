@@ -1068,12 +1068,12 @@ static COW_IMPL(char **, x_mtab);		/* macro definitions */
 static COW_IMPL(char *, macroptr);		/* bind key macro active? */
 #endif
 #define KILLSIZE	20
-static COW_IMPL_ARRAY(char *, killstack, KILLSIZE);
+static COW_IMPL(char *[KILLSIZE], killstack);
 static COW_IMPL(int, killsp);
 static COW_IMPL(int, killtp);
 #if !MKSH_S_NOVI
 static COW_IMPL(int, winwidth);		/* width of window */
-static COW_IMPL_ARRAY(char *, wbuf, 2);		/* window buffers */
+static COW_IMPL(char *[2], wbuf);		/* window buffers */
 static COW_IMPL(int, wbuf_len);		/* length of window buffers (x_cols - 3) */
 static COW_IMPL(int, win);			/* window buffer in use */
 static COW_IMPL(char, morec);		/* more character at right of window */

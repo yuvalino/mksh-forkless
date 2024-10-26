@@ -40,12 +40,12 @@ COW_IMPL(int, subst_exstat);
 COW_IMPL(struct tbl *, vp_pipest);
 COW_IMPL(short, trap_exstat);
 COW_IMPL(kby, trap_nested);
-COW_IMPL_ARRAY(kby, shell_flags, FNFLAGS);
-COW_IMPL_ARRAY(kby, baseline_flags, FNFLAGS
+COW_IMPL(kby[FNFLAGS], shell_flags);
+COW_IMPL(kby[FNFLAGS
 #if !defined(MKSH_SMALL) || defined(DEBUG)
     + 1
 #endif
-    );
+    ], baseline_flags);
 COW_IMPL(Wahr, as_builtin);
 COW_IMPL(const char *, kshname);
 COW_IMPL(struct rndsetupstate_t, rndsetupstate);
@@ -65,7 +65,7 @@ COW_IMPL(unsigned int, ksh_tmout);
 COW_IMPL(enum tmout_enum, ksh_tmout_state);
 COW_IMPL(Wahr, really_exit);
 
-COW_IMPL_ARRAY(kui, ksh_ctypes, 256);
+COW_IMPL(kui[256], ksh_ctypes);
 COW_IMPL(char, ifs0);
 
 COW_IMPL(Getopt, builtin_opt)
@@ -99,9 +99,9 @@ COW_IMPL(int, current_lineno);
 
 COW_IMPL(Source *, source);
 COW_IMPL(YYSTYPE, yylval);
-COW_IMPL_ARRAY(struct ioword *, heres, HERES);
+COW_IMPL(struct ioword *[HERES], heres);
 COW_IMPL(struct ioword **, herep);
-COW_IMPL_ARRAY(char, ident, IDENT + 1);
+COW_IMPL(char[IDENT + 1], ident);
 
 COW_IMPL(char **, history);
 COW_IMPL(char **, histptr);
@@ -1471,7 +1471,7 @@ int shl_dbg_fd;
 #endif
 
 #if MKSH_FORKLESS
-COW_IMPL_ARRAY(struct shf, shf_iob, NSHF_IOB);
+COW_IMPL(struct shf[NSHF_IOB], shf_iob);
 #else
 struct shf shf_iob[NSHF_IOB];
 #endif
